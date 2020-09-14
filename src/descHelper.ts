@@ -94,7 +94,7 @@ export class DescHelper {
       this.clearAnnotations(this._editor);
     }
     this.clearAnnotations(editor);
-    // this._editor = undefined;
+    this._editor = undefined;
   }
 
 
