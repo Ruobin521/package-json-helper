@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PackageInfoHelper from './packageInfoHelper';
 
-import { TextDocument, languages, DefinitionProvider, HoverProvider, Position, CancellationToken } from 'vscode';
+import { TextDocument, languages, DefinitionProvider, HoverProvider, Position, CancellationToken, workspace } from 'vscode';
 // import { getProjectPath } from './util';
 
 const packageInfo = new PackageInfoHelper();
@@ -18,6 +18,10 @@ class MyDefinitionProvider implements DefinitionProvider {
    * @param {*} token 
    */
   provideDefinition(document: TextDocument, position: any, token: any) {
+    const goToDefinition = workspace.getConfiguration().get('packageJsonHelper.goToDefinition');
+    if (!goToDefinition) {
+      return;
+    }
     const fileName = document.fileName;
     const workDir = path.dirname(fileName);
     const word = document.getText(document.getWordRangeAtPosition(position));
@@ -50,9 +54,15 @@ class MyDefinitionProvider implements DefinitionProvider {
 
 class MyHoverProvider implements HoverProvider {
   async provideHover(document: TextDocument, position: Position, token: CancellationToken) {
+    const showHover = workspace.getConfiguration().get('packageJsonHelper.showHover');
+    if (!showHover) {
+      return;
+    }
     const fileName = document.fileName;
     // const workDir = path.dirname(fileName);
     const word = document.getText(document.getWordRangeAtPosition(position));
+
+
 
     if (!/\/package\.json$/.test(fileName)) {
       return;
@@ -80,13 +90,3 @@ module.exports = function (context: any) {
     new MyHoverProvider()
   ));
 };
-
-
-
-
-// module.exports = function (context) {
-//   // 注册鼠标悬停提示
-//   context.subscriptions.push(vscode.languages.registerHoverProvider('json', {
-//     provideHover
-//   }));
-// };

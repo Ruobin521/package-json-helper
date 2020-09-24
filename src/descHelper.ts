@@ -5,7 +5,10 @@ import {
   Range,
   ThemeColor,
   DecorationOptions,
-  MarkdownString
+  MarkdownString,
+  workspace,
+  ExtensionContext,
+  TextEditorSelectionChangeEvent
 } from 'vscode';
 
 
@@ -18,7 +21,7 @@ const annotationDecoration = window.createTextEditorDecorationType({
   },
   rangeBehavior: DecorationRangeBehavior.ClosedOpen
 });
-export class DescHelper {
+class DescHelper {
 
   private _currentLine = -1;
 
@@ -26,7 +29,39 @@ export class DescHelper {
 
   private package = new PackageInfoHelper();
 
-  async addDesc(editor: TextEditor) {
+  private ctx: ExtensionContext;
+
+  constructor(context: ExtensionContext) {
+    this.ctx = context;
+    this.initEventListener();
+  }
+
+  initEventListener() {
+    // * Handle active file changed
+    window.onDidChangeActiveTextEditor(editor => {
+      if (editor) {
+        this._editor = editor;
+      }
+    }, null, this.ctx.subscriptions);
+
+    // * Handle file contents changed
+    workspace.onDidChangeTextDocument(event => {
+      // Trigger updates if the text was changed in the same document
+      if (this._editor && event.document === this._editor.document) {
+        this.updateAction(this._editor);
+      } else {
+
+      }
+    }, null, this.ctx.subscriptions);
+
+
+    window.onDidChangeTextEditorSelection((event: TextEditorSelectionChangeEvent) => {
+      this.updateAction(this._editor);
+    }, null, this.ctx.subscriptions);
+
+  }
+
+  async addDesc(editor: TextEditor | undefined) {
     if (!editor) {
       return;
     }
@@ -102,4 +137,35 @@ export class DescHelper {
     if (editor === undefined || (editor as any)._disposed === true) { return; }
     editor.setDecorations(annotationDecoration, []);
   }
+
+  updateAction(editor: TextEditor | undefined) {
+    const showDecoration = workspace.getConfiguration().get('packageJsonHelper.showDecoration');
+    if (!showDecoration || !editor) {
+      return;
+    }
+    this._editor = editor;
+    const uri = this?._editor?.document.uri;
+    if (uri?.scheme !== 'file' || !uri?.path.endsWith('package.json')) {
+      return;
+    }
+    this.triggerUpdate();
+  }
+
+  // Get the active editor for the first time and initialise the regex
+  private timeout: any;
+  triggerUpdate() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+    }
+    this.timeout = setTimeout(() => {
+      this.addDesc(this._editor);
+    }, 200);
+  }
 }
+
+module.exports = function (context: any) {
+  let helper = new DescHelper(context);
+  if (window.activeTextEditor) {
+    helper.updateAction(window.activeTextEditor);
+  }
+};

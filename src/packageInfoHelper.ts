@@ -1,9 +1,6 @@
 import * as path from 'path';
 import { TextDocument, TextEditor } from 'vscode';
 import * as shell from 'shelljs';
-
-
-
 import * as fs from 'fs';
 class PackageInfoHelper {
   async getPackageInfo(document: TextDocument, packageName: string, line: number) {
